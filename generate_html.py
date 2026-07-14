@@ -199,9 +199,13 @@ def render_page(data: dict) -> str:
   .card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.11); }
   .card-header {
     padding: 16px 20px 12px; font-size: 17px; font-weight: 600;
-    display: flex; align-items: center; gap: 8px;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
     border-bottom: 1px solid #f0f0f0;
   }
+  .card-header .more-link {
+    font-size: 12px; color: #999; text-decoration: none; font-weight: 400;
+  }
+  .card-header .more-link:hover { color: #c41e3a; }
   .card-header .icon { font-size: 20px; }
   .card-body { padding: 14px 20px 18px; }
 
@@ -304,12 +308,12 @@ def render_page(data: dict) -> str:
     </div>
 
     <div class="card">
-      <div class="card-header"><span class="icon">📰</span> 交大要闻</div>
+      <div class="card-header"><span class="icon">📰</span> 交大要闻<a class="more-link" href="https://news.sjtu.edu.cn/jdyw/" target="_blank">更多></a></div>
       <div class="card-body">""" + (news_cards if news_cards else no_data) + """</div>
     </div>
 
     <div class="card">
-      <div class="card-header"><span class="icon">💧</span> 水源热议</div>
+      <div class="card-header"><span class="icon">💧</span> 水源热议<a class="more-link" href="https://shuiyuan.sjtu.edu.cn/" target="_blank">更多></a></div>
       <div class="card-body">""" + (shuiyuan_cards if shuiyuan_cards else no_data) + """</div>
     </div>
   </div>
