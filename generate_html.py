@@ -12,18 +12,22 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_PATH = os.path.join(BASE_DIR, "data.json")
 OUTPUT_PATH = os.path.join(BASE_DIR, "index.html")
 
-# ── 天气图标映射（wttr.in URL → emoji） ─────────────────
+# ── 天气图标映射（支持中英文） ─────────────────
 WEATHER_EMOJI = {
-    "sunny": "☀️", "clear": "☀️", "partly cloudy": "⛅", "cloudy": "☁️",
-    "overcast": "☁️", "mist": "🌫️", "fog": "🌫️", "light rain": "🌦️",
-    "moderate rain": "🌧️", "heavy rain": "🌧️", "light snow": "🌨️",
-    "heavy snow": "❄️", "thunder": "⛈️", "thunderstorm": "⛈️",
+    "晴": "☀️", "sunny": "☀️", "clear": "☀️",
+    "多云": "⛅", "partly cloudy": "⛅",
+    "阴": "☁️", "cloudy": "☁️", "overcast": "☁️",
+    "霾": "🌫️", "薄雾": "🌫️", "雾": "🌫️", "mist": "🌫️", "fog": "🌫️", "haze": "🌫️",
+    "小雨": "🌦️", "阵雨": "🌦️", "毛毛雨": "🌦️", "light rain": "🌦️",
+    "中雨": "🌧️", "大雨": "🌧️", "雷阵雨": "🌧️", "雷暴雨": "🌧️", "moderate rain": "🌧️", "heavy rain": "🌧️",
+    "雪": "❄️", "snow": "❄️",
+    "雷暴": "⛈️", "thunder": "⛈️", "thunderstorm": "⛈️",
 }
 
 
 def weather_emoji(desc: str) -> str:
     for key, emoji in WEATHER_EMOJI.items():
-        if key in desc.lower():
+        if key in desc:
             return emoji
     return "🌡️"
 
@@ -292,7 +296,7 @@ def render_page(data: dict) -> str:
           <div class="brief-item">
             <div class="brief-emoji">{weather_icon}</div>
             <div class="brief-text">
-              {"<div class='label'>上海 · 天气</div><div class='value temp'>"+w["temp"]+"°C</div><div style='font-size:12px;color:#888;'>"+w["desc"]+" · 体感"+w["feels_like"]+"°C · 湿度"+w["humidity"]+"%</div>" if not has_weather_err else "<div class='label'>天气</div><div class='value' style='color:#999;'>暂不可用</div>"}
+              {"<div class='label'>上海 · 天气</div><div class='value temp'>"+w["temp"]+"°C</div><div style='font-size:12px;color:#888;'>"+w["desc"]+" · 体感"+w["feels_like"]+"°C · 湿度"+w["humidity"]+"% · 风速"+w["wind"]+"km/h</div>" if not has_weather_err else "<div class='label'>天气</div><div class='value' style='color:#999;'>暂不可用</div>"}
             </div>
           </div>
 

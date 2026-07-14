@@ -34,6 +34,35 @@ SJTU_SKILL_DIR = os.path.expanduser(
 # ════════════════════════════════════════════════════════════
 # 模块 1: 天气
 # ════════════════════════════════════════════════════════════
+# 天气英文 → 中文映射
+WEATHER_ZH_MAP = {
+    "sunny": "晴", "clear": "晴", "clear sky": "晴",
+    "partly cloudy": "多云", "cloudy": "多云", "overcast": "阴",
+    "mist": "薄雾", "fog": "雾", "haze": "霾", "smoky haze": "霾",
+    "light rain": "小雨", "moderate rain": "中雨", "heavy rain": "大雨",
+    "light rain shower": "小阵雨", "moderate or heavy rain shower": "大阵雨",
+    "patchy rain possible": "可能有零星小雨",
+    "light drizzle": "毛毛雨",
+    "thundery outbreaks possible": "可能有雷暴",
+    "light snow": "小雪", "heavy snow": "大雪",
+    "light sleet": "小冻雨", "heavy sleet": "大冻雨",
+    "ice pellets": "冰雹",
+    "blowing snow": "吹雪",
+    "freezing fog": "冻雾",
+    "patchy light rain with thunder": "雷阵雨",
+    "moderate or heavy rain with thunder": "雷暴雨",
+}
+
+
+def weather_desc_zh(desc_en: str) -> str:
+    """英文天气描述转中文"""
+    desc_lower = desc_en.strip().lower()
+    for eng, zh in WEATHER_ZH_MAP.items():
+        if eng in desc_lower:
+            return zh
+    return desc_en  # 找不到就返回原文
+
+
 def fetch_weather() -> dict:
     """获取上海当前天气"""
     try:
@@ -46,12 +75,15 @@ def fetch_weather() -> dict:
         data = resp.json()
         cc = data["current_condition"][0]
 
+        desc_en = cc["weatherDesc"][0]["value"]
+
         return {
             "temp": cc["temp_C"],
             "feels_like": cc["FeelsLikeC"],
             "humidity": cc["humidity"],
             "wind": cc["windspeedKmph"],
-            "desc": cc["weatherDesc"][0]["value"],
+            "desc_en": desc_en,
+            "desc": weather_desc_zh(desc_en),
             "icon": cc["weatherIconUrl"][0]["value"],
         }
     except Exception as e:
