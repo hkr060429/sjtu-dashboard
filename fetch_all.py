@@ -77,6 +77,16 @@ def fetch_weather() -> dict:
 
         desc_en = cc["weatherDesc"][0]["value"]
 
+        # 获取今明后天预报
+        forecast = []
+        for day in data.get("weather", [])[:3]:
+            forecast.append({
+                "date": day["date"],
+                "high": day["maxtempC"],
+                "low": day["mintempC"],
+                "desc": weather_desc_zh(day["hourly"][0]["weatherDesc"][0]["value"]),
+            })
+
         return {
             "temp": cc["temp_C"],
             "feels_like": cc["FeelsLikeC"],
@@ -85,6 +95,7 @@ def fetch_weather() -> dict:
             "desc_en": desc_en,
             "desc": weather_desc_zh(desc_en),
             "icon": cc["weatherIconUrl"][0]["value"],
+            "forecast": forecast,
         }
     except Exception as e:
         return {"error": str(e)}
