@@ -62,10 +62,12 @@ def _mail_block(m, has_err):
     """Build mail HTML block."""
     items = []
     for e in m.get("emails", [])[:5]:
+        subj = e.get("subject", "")
+        dt = e.get("date", "")
         items.append(
             '<div class="mail-list-item">'
-            '<span class="mail-subject">' + e.get("subject", "") + '</span>'
-            '<span class="mail-date">' + e.get("date", "") + '</span>'
+            '<a class="mail-subject" href="https://mail.sjtu.edu.cn" target="_blank" title="' + subj + '">' + subj + '</a>'
+            '<span class="mail-date">' + dt + '</span>'
             '</div>'
         )
     mail_list = "\n".join(items)
@@ -240,7 +242,9 @@ def render_page(data: dict) -> str:
   .mail-subject {
     color: #333; overflow: hidden; text-overflow: ellipsis;
     white-space: nowrap; max-width: 180px;
+    text-decoration: none;
   }
+  .mail-subject:hover { color: #c41e3a; text-decoration: underline; }
   .mail-date { color: #aaa; font-size: 11px; white-space: nowrap; }
 
   .news-item {
