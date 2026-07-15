@@ -88,6 +88,26 @@ def _mail_block(m, has_err):
     )
 
 
+def _render_shuiyuan_item(s):
+    """Render a single shuiyuan item to HTML."""
+    if "error" in s:
+        return '<div class="shuiyuan-item"><span class="shuiyuan-title" style="color:#999;">⚠️ ' + s["error"] + '</span></div>'
+    sid = str(s.get("id", ""))
+    title = s.get("title", "")
+    url = s.get("url", "")
+    posts = s.get("posts_count", 0)
+    views = s.get("views", 0)
+    likes = s.get("like_count", 0)
+    likes_html = " ❤️ " + str(likes) if likes else ""
+    return (
+        '<a class="shuiyuan-item" href="' + url + '" target="_blank">'
+        '<span class="shuiyuan-rank">#' + sid + '</span>'
+        '<span class="shuiyuan-title">' + title + '</span>'
+        '<span class="shuiyuan-meta">💬 ' + str(posts) + '  👁️ ' + str(views) + likes_html + '</span>'
+        '</a>'
+    )
+
+
 def render_page(data: dict) -> str:
     w = data.get("weather", {})
     c = data.get("countdown", {})
@@ -133,26 +153,8 @@ def render_page(data: dict) -> str:
             '</a>'
         )
 
-    # ── 水源卡片 ──
-    shuiyuan_cards = ""
-    for s in shuiyuan_list:
-        if "error" in s:
-            shuiyuan_cards += '<div class="shuiyuan-item"><span class="shuiyuan-title" style="color:#999;">⚠️ ' + s["error"] + '</span></div>'
-            continue
-        sid = str(s.get("id", ""))
-        title = s.get("title", "")
-        url = s.get("url", "")
-        posts = s.get("posts_count", 0)
-        views = s.get("views", 0)
-        likes = s.get("like_count", 0)
-        likes_html = " ❤️ " + str(likes) if likes else ""
-        shuiyuan_cards += (
-            '<a class="shuiyuan-item" href="' + url + '" target="_blank">'
-            '<span class="shuiyuan-rank">#' + sid + '</span>'
-            '<span class="shuiyuan-title">' + title + '</span>'
-            '<span class="shuiyuan-meta">💬 ' + str(posts) + '  👁️ ' + str(views) + likes_html + '</span>'
-            '</a>'
-        )
+    # ── 水源数据（全部嵌入 JS，供前端搜索） ──
+    shuiyuan_js_data = json.dumps(shuiyuan_list, ensure_ascii=False)
 
     no_data = '<div style="color:#ccc;text-align:center;padding:20px;">暂无数据</div>'
 
@@ -312,9 +314,19 @@ def render_page(data: dict) -> str:
       <div class="card-body">""" + (news_cards if news_cards else no_data) + """</div>
     </div>
 
-    <div class="card">
-      <div class="card-header"><span class="icon">💧</span> 水源热议<a class="more-link" href="https://shuiyuan.sjtu.edu.cn/" target="_blank">更多></a></div>
-      <div class="card-body">""" + (shuiyuan_cards if shuiyuan_cards else no_data) + """</div>
+    <div class="card" id="shuiyuan-card">
+      <div class="card-header">
+        <span><span class="icon">💧</span> 水源热议</span>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <input type="text" id="shuiyuan-search-input" placeholder="搜索帖子..."
+                 style="border:1px solid #ddd;border-radius:6px;padding:4px 10px;font-size:12px;width:120px;outline:none;"
+                 onkeydown="if(event.key==='Enter') shuiyuanSearch()">
+          <button onclick="shuiyuanSearch()" style="background:#c41e3a;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;">搜索</button>
+          <button onclick="shuiyuanClear()" style="background:#eee;color:#666;border:none;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;">清除</button>
+          <a class="more-link" href="https://shuiyuan.sjtu.edu.cn/" target="_blank">更多></a>
+        </div>
+      </div>
+      <div class="card-body" id="shuiyuan-body"></div>
     </div>
   </div>
 
@@ -324,6 +336,89 @@ def render_page(data: dict) -> str:
     · Powered by OpenClaw 🦞
   </div>
 </div>
+
+<script>
+// ── 水源帖子数据（全部数据，前端搜索用） ──
+var SHUIYUAN_DATA = """ + shuiyuan_js_data + """;
+
+/**
+ * 渲染水源帖子列表到 #shuiyuan-body
+ * @param {Array} items - 要显示的帖子列表
+ */
+function shuiyuanRender(items) {
+  var body = document.getElementById('shuiyuan-body');
+  if (!body) return;
+  if (!items || items.length === 0) {
+    body.innerHTML = '<div style="color:#ccc;text-align:center;padding:20px;">暂无结果</div>';
+    return;
+  }
+  var html = '';
+  for (var i = 0; i < items.length; i++) {
+    var s = items[i];
+    if (s.error) {
+      html += '<div class="shuiyuan-item"><span class="shuiyuan-title" style="color:#999;">⚠️ ' + escapeHtml(s.error) + '</span></div>';
+      continue;
+    }
+    var sid = s.id || '';
+    var title = s.title || '';
+    var url = s.url || '';
+    var posts = s.posts_count || 0;
+    var views = s.views || 0;
+    var likes = s.like_count || 0;
+    var likesHtml = likes ? ' ❤️ ' + likes : '';
+    html += '<a class="shuiyuan-item" href="' + escapeHtml(url) + '" target="_blank">'
+         + '<span class="shuiyuan-rank">#' + sid + '</span>'
+         + '<span class="shuiyuan-title">' + escapeHtml(title) + '</span>'
+         + '<span class="shuiyuan-meta">💬 ' + posts + '  👁️ ' + views + likesHtml + '</span>'
+         + '</a>';
+  }
+  body.innerHTML = html;
+}
+
+/** 简单的 HTML 转义 */
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
+ * 搜索：按关键词过滤帖子标题，显示最多10条
+ */
+function shuiyuanSearch() {
+  var input = document.getElementById('shuiyuan-search-input');
+  var keyword = input ? input.value.trim() : '';
+  if (!keyword) {
+    // 关键词为空则显示最新10条
+    shuiyuanRender(SHUIYUAN_DATA.slice(0, 10));
+    return;
+  }
+  var kw = keyword.toLowerCase();
+  var results = [];
+  for (var i = 0; i < SHUIYUAN_DATA.length; i++) {
+    var s = SHUIYUAN_DATA[i];
+    if (s.title && s.title.toLowerCase().indexOf(kw) !== -1) {
+      results.push(s);
+    }
+  }
+  shuiyuanRender(results.slice(0, 10));
+}
+
+/**
+ * 清除：清空搜索框，恢复显示最新10条
+ */
+function shuiyuanClear() {
+  var input = document.getElementById('shuiyuan-search-input');
+  if (input) input.value = '';
+  shuiyuanRender(SHUIYUAN_DATA.slice(0, 10));
+}
+
+// ── 页面加载后默认显示最新10条 ──
+shuiyuanRender(SHUIYUAN_DATA.slice(0, 10));
+</script>
 </body>
 </html>"""
 
