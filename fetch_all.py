@@ -266,44 +266,53 @@ def fetch_news(limit: int = 5) -> list:
 # ════════════════════════════════════════════════════════════
 # 模块 5: 水源热议
 # ════════════════════════════════════════════════════════════
-def fetch_shuiyuan(limit: int = 10) -> list:
-    """获取水源社区最新话题"""
+def fetch_shuiyuan(limit: int = 50) -> list:
+    """获取水源社区最新话题（多页聚合）"""
     script = os.path.join(
         SJTU_SKILL_DIR, "scripts", "shuiyuan_discourse.mjs"
     )
     if not os.path.isfile(script):
         return [{"error": "shuiyuan_discourse.mjs 不存在"}]
 
+    all_topics = {}
     try:
-        result = subprocess.run(
-            ["node", script, "latest"],
-            capture_output=True,
-            text=True,
-            timeout=20,
-            cwd=SJTU_SKILL_DIR,
-        )
-        data = json.loads(result.stdout)
+        # 最多请求4页（每页30条，最多获120条）
+        for page in range(4):
+            if len(all_topics) >= limit:
+                break
+            result = subprocess.run(
+                ["node", script, "latest", "--page", str(page), "--max-results", "30"],
+                capture_output=True,
+                text=True,
+                timeout=20,
+                cwd=SJTU_SKILL_DIR,
+            )
+            data = json.loads(result.stdout)
 
-        if not data.get("ok"):
-            return [{"error": data.get("error", "请求失败")}]
+            if not data.get("ok"):
+                if page > 0:
+                    break  # 已有数据就继续
+                return [{"error": data.get("error", "请求失败")}]
 
-        topics = data.get("results", [])
-        results = []
-        for t in topics[:limit]:
-            # 计算相对时间
-            posted = t.get("last_posted_at", "")
-            results.append({
-                "id": t.get("id"),
-                "title": t.get("title", ""),
-                "url": t.get("url", ""),
-                "posts_count": t.get("posts_count", 0),
-                "views": t.get("views", 0),
-                "like_count": t.get("like_count", 0),
-                "last_posted_at": posted,
-                "category_id": t.get("category_id"),
-            })
+            topics = data.get("results", [])
+            if not topics:
+                break  # 没更多数据了
 
-        return results
+            for t in topics:
+                tid = t.get("id")
+                if tid and tid not in all_topics:
+                    all_topics[tid] = {
+                        "id": tid,
+                        "title": t.get("title", ""),
+                        "url": t.get("url", ""),
+                        "posts_count": t.get("posts_count", 0),
+                        "views": t.get("views", 0),
+                        "like_count": t.get("like_count", 0),
+                        "last_posted_at": t.get("last_posted_at", ""),
+                        "category_id": t.get("category_id"),
+                    }
+
+        return list(all_topics.values())[:limit]
     except Exception as e:
         return [{"error": str(e)}]
 
@@ -331,7 +340,7 @@ def main():
     print(f"{len(news)}条")
 
     print("  [5/5] 水源热议...", end=" ")
-    shuiyuan = fetch_shuiyuan(limit=10)
+    shuiyuan = fetch_shuiyuan(limit=50)
     print(f"{len(shuiyuan)}个话题")
 
     # 聚合

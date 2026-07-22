@@ -345,11 +345,13 @@ var SHUIYUAN_DATA = """ + shuiyuan_js_data + """;
  * 渲染水源帖子列表到 #shuiyuan-body
  * @param {Array} items - 要显示的帖子列表
  */
-function shuiyuanRender(items) {
+function shuiyuanRender(items, returnHtml) {
   var body = document.getElementById('shuiyuan-body');
-  if (!body) return;
+  if (!returnHtml && !body) return;
   if (!items || items.length === 0) {
-    body.innerHTML = '<div style="color:#ccc;text-align:center;padding:20px;">暂无结果</div>';
+    var emptyHtml = '<div style="color:#ccc;text-align:center;padding:20px;">暂无结果</div>';
+    if (returnHtml) return emptyHtml;
+    body.innerHTML = emptyHtml;
     return;
   }
   var html = '';
@@ -372,6 +374,7 @@ function shuiyuanRender(items) {
          + '<span class="shuiyuan-meta">💬 ' + posts + '  👁️ ' + views + likesHtml + '</span>'
          + '</a>';
   }
+  if (returnHtml) return html;
   body.innerHTML = html;
 }
 
@@ -385,14 +388,16 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
+/* 水源社区搜索链接模板 */
+var SHUIYUAN_SEARCH_URL = 'https://shuiyuan.sjtu.edu.cn/search?q=';
+
 /**
- * 搜索：按关键词过滤帖子标题，显示最多10条
+ * 搜索：先在本地最新数据中查找，同时提供水源社区完整搜索链接
  */
 function shuiyuanSearch() {
   var input = document.getElementById('shuiyuan-search-input');
   var keyword = input ? input.value.trim() : '';
   if (!keyword) {
-    // 关键词为空则显示最新10条
     shuiyuanRender(SHUIYUAN_DATA.slice(0, 10));
     return;
   }
@@ -404,7 +409,22 @@ function shuiyuanSearch() {
       results.push(s);
     }
   }
-  shuiyuanRender(results.slice(0, 10));
+
+  var searchLink = SHUIYUAN_SEARCH_URL + encodeURIComponent(keyword);
+  var html = '<div class="search-hint" style="margin-bottom:8px;font-size:13px;color:#666;">';
+  html += '本地数据中找到 <strong>' + results.length + '</strong> 条·';
+  html += '<a href="' + searchLink + '" target="_blank" style="color:#c41e3a;">前往水源社区完整搜索 &rarr;</a>';
+  html += '</div>';
+
+  if (results.length > 0) {
+    html += shuiyuanRender(results.slice(0, 10), true);
+  } else {
+    html += '<div style="color:#999;padding:20px;text-align:center;">';
+    html += '本地数据中暂未匹配，<a href="' + searchLink + '" target="_blank" style="color:#c41e3a;">点击前往水源社区搜索</a>';
+    html += '</div>';
+  }
+
+  document.getElementById('shuiyuan-body').innerHTML = html;
 }
 
 /**
